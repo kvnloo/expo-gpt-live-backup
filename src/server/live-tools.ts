@@ -7,9 +7,10 @@ import {
   validSessionId,
   type ServerOptions,
 } from './http';
+import { PhoneBridge, phoneToolNames } from './phone-tools';
 import { connectSideband, type Sideband } from './sideband';
 import { ToolRunner } from './tool-runner';
-import type { executeTool } from './tools';
+import { executeTool } from './tools';
 
 type Options = ServerOptions & {
   connect?: typeof connectSideband;
@@ -37,6 +38,7 @@ export function createLiveToolsHandler(options: Options) {
       let socket: Sideband | undefined;
       let output: ReadableStreamDefaultController<Uint8Array>;
       let runner: ToolRunner;
+      let phone: PhoneBridge;
       let heartbeat: ReturnType<typeof setInterval> | undefined;
       let deadline: ReturnType<typeof setTimeout> | undefined;
       let finished = false;
@@ -52,6 +54,7 @@ export function createLiveToolsHandler(options: Options) {
         clearTimeout(deadline);
         request.signal.removeEventListener('abort', onAbort);
         runner.close();
+        phone.close();
         if (type !== 'closed') {
           try {
             socket?.send({ type: 'session.close' });
@@ -74,8 +77,16 @@ export function createLiveToolsHandler(options: Options) {
       const stream = new ReadableStream<Uint8Array>({
         start(streamController) {
           output = streamController;
+          phone = new PhoneBridge(sessionId, (frame) => {
+            if (finished) throw new Error('closed');
+            emit(frame);
+          });
+          const execute = options.execute ?? executeTool;
           runner = new ToolRunner({
-            execute: options.execute,
+            execute: (name, argumentsJson, callOptions) =>
+              phoneToolNames.has(name)
+                ? phone.call(name, argumentsJson, callOptions?.signal)
+                : execute(name, argumentsJson, callOptions),
             send: (event) => {
               if (!socket) throw new Error('The tool connection is not ready.');
               socket.send(event);

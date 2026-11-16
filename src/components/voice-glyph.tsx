@@ -10,6 +10,7 @@ const symbols = {
   'mic-off': 'mic.slash',
   close: 'xmark',
   waveform: 'waveform',
+  phone: 'iphone',
 } as const;
 
 export function VoiceGlyph({ name, color, size = 25 }: VoiceGlyphProps) {
@@ -22,7 +23,9 @@ export function VoiceGlyph({ name, color, size = 25 }: VoiceGlyphProps) {
           ? '☰'
           : name === 'mic-off'
             ? '⊘'
-            : '≋'}
+            : name === 'phone'
+              ? '▯'
+              : '≋'}
     </Text>
   );
 }

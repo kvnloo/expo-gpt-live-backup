@@ -52,6 +52,11 @@ export function createLiveSessionHandlers(options: HandlerOptions) {
         if (body.tools !== undefined && typeof body.tools !== 'boolean') {
           throw new LiveRequestError('The tools flag must be a boolean.', 400, 'invalid_tools');
         }
+        if (body.phone !== undefined && typeof body.phone !== 'boolean') {
+          throw new LiveRequestError('The phone flag must be a boolean.', 400, 'invalid_phone');
+        }
+        // Phone tools reach the device through the tool stream, so they need it.
+        const phone = body.tools === true && body.phone === true;
 
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? 20_000);
@@ -62,7 +67,7 @@ export function createLiveSessionHandlers(options: HandlerOptions) {
             method: 'POST',
             headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              session: createSessionConfig(voice, body.tools === true),
+              session: createSessionConfig(voice, body.tools === true, phone),
               transport: { type: 'webrtc', sdp: body.sdp },
             }),
             signal: controller.signal,

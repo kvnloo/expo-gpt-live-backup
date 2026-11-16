@@ -1,5 +1,5 @@
 import type { SessionAPI } from './types';
-import { createToolConnection } from './tool-connection';
+import { createToolConnection, type PhoneRequest } from './tool-connection';
 
 type Options = {
   fetch: typeof globalThis.fetch;
@@ -8,6 +8,8 @@ type Options = {
   getAccessToken: (interactive?: boolean) => string;
   clearAccessToken?: () => void;
   timeoutMs?: number;
+  /** Runs phone tool calls on this device; absent off Android. */
+  phone?: { available(): boolean; handle(request: PhoneRequest): Promise<string> };
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -114,7 +116,13 @@ export function createSessionAPI(options: Options): SessionAPI {
       accessToken(true);
     },
     async create(sdp, voice) {
-      const result = await request('POST', { sdp, voice, tools: true });
+      const phone = options.phone?.available() ?? false;
+      const result = await request('POST', {
+        sdp,
+        voice,
+        tools: true,
+        ...(phone ? { phone } : {}),
+      });
       if (
         !isRecord(result) ||
         typeof result.sdp !== 'string' ||
@@ -136,8 +144,27 @@ export function createSessionAPI(options: Options): SessionAPI {
     connectTools(sessionId, onFailure) {
       const url = endpoint('/api/live-tools');
       const token = accessToken();
+      const phone = options.phone;
       return createToolConnection({
         onFailure,
+        onPhone: phone
+          ? (call) => {
+              void phone
+                .handle(call)
+                .catch(() => JSON.stringify({ ok: false, error: 'phone_control_failed' }))
+                .then((result) =>
+                  options.fetch(endpoint('/api/phone-result'), {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ sessionId, id: call.id, result }),
+                  }),
+                )
+                .catch(() => {}); // the server times the call out
+            }
+          : undefined,
         open: async (signal) => {
           const response = await options.fetch(url, {
             method: 'POST',

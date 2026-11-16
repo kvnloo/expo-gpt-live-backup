@@ -1,0 +1,6 @@
+<resources>
+    <string name="agent_control_label">Voice phone control</string>
+    <string name="agent_control_description">Lets the voice assistant read the screen and tap, type, scroll and open apps when you ask during a call. It never reads passwords or typed field values, and it asks before sending, paying, deleting or installing anything.</string>
+    <string name="agent_call_channel">Voice call</string>
+    <string name="agent_call_text">Voice assistant is listening</string>
+</resources>

@@ -63,6 +63,20 @@ export default function LiveScreen() {
           onPress={() => setSheet('transcript')}
           size={48}
         />
+        {session.phone.supported && (
+          <VoiceControl
+            icon="phone"
+            label={
+              session.phone.enabled
+                ? 'Phone control is on. Open accessibility settings'
+                : 'Turn on phone control'
+            }
+            testID="phone-control-button"
+            selected={session.phone.enabled}
+            onPress={session.phone.openSettings}
+            size={48}
+          />
+        )}
         <VoiceControl
           icon="settings"
           label="Voice and appearance settings"
@@ -72,6 +86,11 @@ export default function LiveScreen() {
         />
       </View>
       <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, 20) + 14 }]}>
+        {session.phone.lastAction && (
+          <Text accessibilityLiveRegion="polite" style={styles.phone}>
+            {session.phone.lastAction}
+          </Text>
+        )}
         {session.error && (
           <Text accessibilityRole="alert" style={styles.error}>
             {session.error}
@@ -152,6 +171,7 @@ const styles = StyleSheet.create({
   },
   bottom: { position: 'absolute', bottom: 0, left: 24, right: 24, gap: 22 },
   controls: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 12 },
+  phone: { color: theme.text, opacity: 0.6, textAlign: 'center', fontSize: 13 },
   error: {
     color: theme.danger,
     textAlign: 'center',

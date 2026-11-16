@@ -1,7 +1,15 @@
 import type { ToolConnection } from './types';
 
+export type PhoneRequest = {
+  id: string;
+  tool: 'screen' | 'act';
+  choice?: { action: string; args: Record<string, unknown> };
+};
+
 type Options = {
   open: (signal: AbortSignal) => Promise<Response>;
+  /** A phone tool call from the server; the caller answers it out of band. */
+  onPhone?: (request: PhoneRequest) => void;
   onFailure: (message: string) => void;
   readyTimeoutMs?: number;
   heartbeatTimeoutMs?: number;
@@ -68,6 +76,19 @@ export function createToolConnection(options: Options): ToolConnection {
         if (!readyReceived) throw new Error();
         watchHeartbeat();
         break;
+      case 'phone': {
+        const { id, tool, choice } = frame as Record<string, unknown>;
+        if (!readyReceived || typeof id !== 'string' || (tool !== 'screen' && tool !== 'act'))
+          throw new Error();
+        options.onPhone?.({
+          id,
+          tool,
+          ...(choice && typeof choice === 'object'
+            ? { choice: choice as PhoneRequest['choice'] }
+            : {}),
+        });
+        break;
+      }
       case 'closed':
         finish();
         break;

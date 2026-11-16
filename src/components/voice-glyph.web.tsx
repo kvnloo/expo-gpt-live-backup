@@ -32,6 +32,12 @@ export function VoiceGlyph({ name, color, size = 25 }: VoiceGlyphProps) {
       )}
       {name === 'close' && <path d="m5 5 14 14M19 5 5 19" />}
       {name === 'waveform' && <path d="M3 10v4M7 6v12M12 3v18M17 6v12M21 10v4" />}
+      {name === 'phone' && (
+        <>
+          <rect x="6" y="2" width="12" height="20" rx="2.5" />
+          <path d="M11 18h2" />
+        </>
+      )}
     </svg>
   );
 }
